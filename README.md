@@ -1,6 +1,5 @@
 # 🩺 Medical Info Chatbot
 
-![Chatbot Screenshot](./public/chatbot-screenshot.png)
 
 An AI-powered chatbot built with Next.js and the ultra-fast Groq API, designed to provide quick and accurate medical information. This application features a clean, responsive interface with conversation history, making it a useful tool for informational purposes.
 
