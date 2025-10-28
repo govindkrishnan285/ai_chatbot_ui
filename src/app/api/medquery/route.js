@@ -1,13 +1,14 @@
-// /src/app/api/medquery/route.js
-
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
-const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// The Groq client is NOT created here anymore.
 
 export async function POST(req) {
   try {
-    // 1. Expect an array of messages instead of a single question
+    // THIS IS THE NEW PART: Create the client *inside* the function.
+    // This code only runs when a user sends a message, not during the build.
+    const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
     const { messages } = await req.json();
 
     if (!messages || messages.length === 0) {
@@ -16,7 +17,6 @@ export async function POST(req) {
 
     const chat = await client.chat.completions.create({
       model: "llama-3.1-8b-instant",
-      // 2. Pass the entire messages array directly to the API
       messages: messages,
     });
 
@@ -24,6 +24,8 @@ export async function POST(req) {
     return NextResponse.json({ answer });
   } catch (err) {
     console.error("Medquery API error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    // Be more specific in the error response for debugging
+    const errorMessage = err.message || "Internal server error";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
