@@ -1,27 +1,31 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
-const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// The Groq client is NOT created here anymore.
 
 export async function POST(req) {
   try {
-    const { question } = await req.json();
-    if (!question) {
-      return NextResponse.json({ error: "Missing question" }, { status: 400 });
+    // THIS IS THE NEW PART: Create the client *inside* the function.
+    // This code only runs when a user sends a message, not during the build.
+    const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+    const { messages } = await req.json();
+
+    if (!messages || messages.length === 0) {
+      return NextResponse.json({ error: "Missing messages" }, { status: 400 });
     }
 
     const chat = await client.chat.completions.create({
-  model: "llama-3.1-8b-instant",
-  messages: [
-    { role: "system", content: "You are a helpful medical assistant..." },
-    { role: "user", content: question }
-  ],
-});
+      model: "llama-3.1-8b-instant",
+      messages: messages,
+    });
 
     const answer = chat.choices[0].message.content;
     return NextResponse.json({ answer });
   } catch (err) {
     console.error("Medquery API error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    // Be more specific in the error response for debugging
+    const errorMessage = err.message || "Internal server error";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
