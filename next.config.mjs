@@ -4,4 +4,4 @@ const nextConfig = {
     assetPrefix: 'http://med-chatbot-static-assets.s3-website.eu-north-1.amazonaws.com', // <-- VERIFY THIS URL
 };
 
-module.exports = nextConfig;
+export default nextConfig;;
