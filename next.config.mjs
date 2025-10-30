@@ -4,4 +4,4 @@ const nextConfig = {
     assetPrefix: 'http://d15wqs0ala1opc.cloudfront.net', // <-- VERIFY THIS URL
 };
 
-export default nextConfig;;
+export default nextConfig;
