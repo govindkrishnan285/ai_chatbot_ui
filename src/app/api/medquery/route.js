@@ -28,12 +28,12 @@ async function getApiKey() {
 export async function POST(req) {
   try {
     const key = await getApiKey(); // Fetch the key on the first request
-    const client = new Groq({ apiKey: key });
+    const client = new Groq({apiKey: key});
 
-    const { messages } = await req.json();
+    const {messages} = await req.json();
 
     if (!messages || messages.length === 0) {
-      return NextResponse.json({ error: "Missing messages" }, { status: 400 });
+      return NextResponse.json({error: "Missing messages"}, {status: 400});
     }
 
     const chat = await client.chat.completions.create({
@@ -42,9 +42,9 @@ export async function POST(req) {
     });
 
     const answer = chat.choices[0].message.content;
-    return NextResponse.json({ answer });
+    return NextResponse.json({answer});
   } catch (err) {
     console.error("API error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({error: "Internal server error"}, {status: 500});
   }
 }
