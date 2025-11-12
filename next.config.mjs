@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     // Use the secure CloudFront URL
-    assetPrefix: 'https://d15wqs0ala1opc.cloudfront.net', // <-- VERIFY THIS URL
+    assetPrefix: 'http://localhost:3000', // <-- VERIFY THIS URL
 };
 
 export default nextConfig;

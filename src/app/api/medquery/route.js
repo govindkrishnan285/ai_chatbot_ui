@@ -1,66 +1,62 @@
 import { NextResponse } from "next/server";
-import Groq from "groq-sdk";
-import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
-
-<<<<<<< HEAD
-
 
 export async function POST(req) {
   try {
+    const { messages } = await req.json();
 
-    const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-=======
-// Create the SSM client. Because of the IAM role, you don't need to provide any credentials.
-// It's important to specify the region.
-const ssmClient = new SSMClient({ region: "eu-north-1" }); // <--- IMPORTANT: Change to YOUR AWS region
-
-const parameterName = "/chatbot/production/GROQ_API_KEY";
-let groqApiKey; // We'll store the key here
-
-// This function fetches the key from AWS.
-async function getApiKey() {
-  if (groqApiKey) {
-    return groqApiKey; // Return cached key if we already have it
-  }
-
-  const command = new GetParameterCommand({
-    Name: parameterName,
-    WithDecryption: true, // Necessary for SecureString types
-  });
-
-  const response = await ssmClient.send(command);
-  groqApiKey = response.Parameter.Value;
-  return groqApiKey;
-}
-
-export async function POST(req) {
-  try {
-    const key = await getApiKey(); // Fetch the key on the first request
-    const client = new Groq({apiKey: key});
->>>>>>> fef2bd41163dcf72509c128f26dd011452df34a8
-
-    const {messages} = await req.json();
-
-    if (!messages || messages.length === 0) {
-      return NextResponse.json({error: "Missing messages"}, {status: 400});
+    const userMessage = messages?.find((m) => m.role === "user")?.content?.trim();
+    if (!userMessage) {
+      return NextResponse.json({ answer: "Please describe your symptoms." });
     }
 
-    const chat = await client.chat.completions.create({
-      model: "llama-3.1-8b-instant",
-      messages: messages,
+    // --- Extract symptom-like words ---
+    const symptomList = userMessage
+      .toLowerCase()
+      .split(/,|and|with|having| /)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 2);
+
+    if (!symptomList.length) {
+      return NextResponse.json({ answer: "Please list at least one symptom." });
+    }
+
+    // --- Call Flask backend ---
+    const flaskRes = await fetch("http://127.0.0.1:8000/recommend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symptoms: symptomList }),
     });
 
-    const answer = chat.choices[0].message.content;
-    return NextResponse.json({answer});
-  } catch (err) {
-<<<<<<< HEAD
-    console.error("Medquery API error:", err);
+    if (!flaskRes.ok) {
+      const text = await flaskRes.text();
+      console.error("Flask error:", text);
+      throw new Error(`Flask returned ${flaskRes.status} ${flaskRes.statusText}`);
+    }
 
-    const errorMessage = err.message || "Internal server error";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
-=======
-    console.error("API error:", err);
-    return NextResponse.json({error: "Internal server error"}, {status: 500});
->>>>>>> fef2bd41163dcf72509c128f26dd011452df34a8
+    const data = await flaskRes.json();
+
+    // --- Format AI response ---
+    if (!data.recommendations || data.recommendations.length === 0) {
+      return NextResponse.json({
+        answer: "I couldn’t find matching specialists for your symptoms. Try different ones.",
+      });
+    }
+
+    let reply = "Here are some doctor recommendations based on your symptoms:\n\n";
+
+    data.recommendations.forEach((rec) => {
+      reply += `**Specialist:** ${rec.specialist}\n`;
+      rec.doctors.forEach((doc, i) => {
+        reply += `${i + 1}. ${doc.name} — ${doc.specialization} (${doc.clinic})\n`;
+      });
+      reply += "\n";
+    });
+
+    return NextResponse.json({ answer: reply });
+  } catch (error) {
+    console.error("Error in medquery route:", error);
+    return NextResponse.json({
+      answer: "Sorry, something went wrong. Please try again.",
+    });
   }
 }
